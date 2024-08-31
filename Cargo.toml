@@ -1,0 +1,18 @@
+[package]
+name = "dynamo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+
+[[bin]]
+name = "node"
+path = "src/node.rs"
+
+[[bin]]
+name = "cli"
+path = "src/cli.rs"
