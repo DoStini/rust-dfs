@@ -1,5 +1,8 @@
 use clap::Parser;
-use dynamo::handlers::handler::handle_message;
+use dynamo::{
+    handlers::handler::handle_message,
+    storage::{config::Storage, manager::StorageManager},
+};
 use tokio::net::TcpListener;
 
 // cargo run --bin node -- -p 1000 -s "data"
@@ -21,16 +24,21 @@ struct Args {
 async fn main() {
     let args = Args::parse();
 
+    let storage = Storage::start_storage(1024, args.storage).await;
+
     let port = args.port;
 
     let listener = TcpListener::bind(format!("127.0.0.1:{port}"))
         .await
         .unwrap();
 
+    println!("Listening at port {}", port);
+
     loop {
         let (stream, origin) = listener.accept().await.unwrap();
+        let storage_clone = storage.clone();
         tokio::spawn(async move {
-            handle_message(stream, origin).await;
+            handle_message(stream, origin, storage_clone).await;
         });
     }
 }

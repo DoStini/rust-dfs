@@ -1,10 +1,26 @@
-use std::{net::SocketAddr, time::Duration};
-use tokio::{net::TcpStream, time::sleep};
+use std::net::SocketAddr;
+use tokio::net::TcpStream;
 
-use super::message::{parse_message, print_message};
+use crate::storage::config::Storage;
 
-pub async fn handle_message(stream: TcpStream, origin: SocketAddr) {
-    let msg = parse_message(stream, origin).await;
+use crate::handlers::{
+    cli::handle_create,
+    message::{parse_message, print_message, Message},
+};
 
-    print_message(msg);
+async fn route_message(message: &Message, _origin: &SocketAddr, storage: &Storage) {
+    match message.message_type {
+        super::message::MessageType::CliPut => handle_create(message, storage),
+        super::message::MessageType::CliGet => todo!(),
+        super::message::MessageType::CliDelete => todo!(),
+    }
+    .await
+}
+
+pub async fn handle_message(mut stream: TcpStream, origin: SocketAddr, storage: Storage) {
+    let msg = parse_message(&mut stream, origin).await;
+
+    print_message(&msg);
+
+    route_message(&msg, &origin, &storage).await;
 }

@@ -2,10 +2,11 @@ use std::net::SocketAddr;
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpSocket, TcpStream},
+    net::TcpStream,
 };
 
 #[repr(u8)]
+#[derive(Clone, Copy)]
 pub enum MessageType {
     CliPut = 1,
     CliGet = 2,
@@ -30,35 +31,39 @@ fn get_type_literal(t: MessageType) -> String {
 }
 
 pub struct Message {
-    origin: SocketAddr,
-    message_type: MessageType,
-    content: String,
+    pub origin: SocketAddr,
+    pub message_type: MessageType,
+    pub content: Vec<u8>,
 }
 
-pub fn print_message(message: Message) {
+pub fn print_message(message: &Message) {
     println!(
         "Received message: {} - {} from {}",
         get_type_literal(message.message_type),
-        message.content,
-        message.origin.is_ipv4().to_string()
+        String::from_utf8(message.content.clone()).expect("Error parsing message content"),
+        message.origin.ip().to_string()
     )
 }
 
-pub fn build_message_data(message_type: MessageType, content: String) -> Vec<u8> {
+pub fn build_message_data(message_type: MessageType, content: &mut Vec<u8>) -> Vec<u8> {
     let mut res: Vec<u8> = Vec::new();
 
     res.push(message_type as u8);
-    res.append(&mut content.as_bytes().to_vec());
+    res.append(content);
 
     res
 }
 
-pub async fn send_message(message_type: MessageType, content: String, mut stream: TcpStream) -> Result<(), std::io::Error> {
+pub async fn send_message(
+    message_type: MessageType,
+    content: &mut Vec<u8>,
+    stream: &mut TcpStream,
+) -> Result<(), std::io::Error> {
     let content = build_message_data(message_type, content);
     stream.write_all(&content).await
 }
 
-pub async fn parse_message(mut stream: TcpStream, addr: SocketAddr) -> Message {
+pub async fn parse_message(stream: &mut TcpStream, addr: SocketAddr) -> Message {
     let mut msg = Vec::new();
 
     stream.read_to_end(&mut msg).await.unwrap();
@@ -67,8 +72,7 @@ pub async fn parse_message(mut stream: TcpStream, addr: SocketAddr) -> Message {
         return Message {
             origin: addr,
             message_type: get_type(message_type),
-            content: String::from_utf8(msg[1..msg.len()].to_vec())
-                .expect("Error parsing message content"),
+            content: msg[1..msg.len()].to_vec(),
         };
     }
 
