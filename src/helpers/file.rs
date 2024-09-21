@@ -26,14 +26,18 @@ pub fn serialize_create_file<'a>(
     content: &'a mut Vec<u8>,
     output: &'a mut Vec<u8>,
 ) {
+    serialize_filename(filename, output);
+    output.push(content.len() as u8);
+    output.append(content);
+}
+
+pub fn serialize_filename<'a>(filename: &'a String, output: &'a mut Vec<u8>) {
     let mut mut_filename = filename.clone();
 
     output.push(filename.len() as u8);
     unsafe {
         output.append(mut_filename.as_mut_vec());
     }
-    output.push(content.len() as u8);
-    output.append(content);
 }
 
 pub fn deserialize_create_file(data: &Vec<u8>) -> (String, Vec<u8>) {
@@ -47,4 +51,10 @@ pub fn deserialize_create_file(data: &Vec<u8>) -> (String, Vec<u8>) {
     let content = data[*filename_len as usize + 2..data_size].to_vec();
 
     (filename, content)
+}
+
+pub fn deserialize_filename_operation(data: &Vec<u8>) -> String {
+    let filename = String::from_utf8(data[1..data.len()].to_vec())
+        .expect("Error deserializing filename operation");
+    filename
 }

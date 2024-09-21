@@ -40,7 +40,7 @@ fn get_type(t: &u8) -> MessageType {
     }
 }
 
-fn get_type_literal(t: MessageType) -> String {
+pub fn get_type_literal(t: MessageType) -> String {
     match t {
         MessageType::CliPut => String::from("CLI_PUT"),
         MessageType::CliGet => String::from("CLI_GET"),
@@ -58,9 +58,8 @@ pub struct Message {
 
 pub fn print_message(message: &Message) {
     println!(
-        "Received message: {} - {} from {}",
+        "Received message: {} from {}",
         get_type_literal(message.message_type),
-        String::from_utf8(message.content.clone()).expect("Error parsing message content"),
         message.origin.ip().to_string()
     )
 }

@@ -1,18 +1,24 @@
 use std::{future::Future, path::Path, process::exit};
 
 use tokio::{
-    fs::{create_dir_all, File},
+    fs::{create_dir_all, remove_file, File},
     io::AsyncWriteExt,
 };
 
 use super::{config::Storage, errors};
 
 pub trait StorageManager {
+    fn make_path(&self, filename: &String) -> String;
     fn start_storage(max_file_size: u32, path: String) -> impl Future<Output = Storage> + Send;
     fn store_file(
         &self,
         filename: &String,
         content: &Vec<u8>,
+    ) -> impl Future<Output = Result<(), errors::StorageErrors>> + Send;
+
+    fn delete_file(
+        &self,
+        filename: &String,
     ) -> impl Future<Output = Result<(), errors::StorageErrors>> + Send;
 }
 
@@ -32,13 +38,32 @@ impl StorageManager for Storage {
         }
     }
 
+    fn make_path(&self, filename: &String) -> String {
+        self.path.clone() + "/" + filename
+    }
+
+    async fn delete_file(&self, filename: &String) -> Result<(), errors::StorageErrors> {
+        let res = remove_file(self.make_path(filename)).await;
+
+        match res {
+            Ok(_) => return Ok(()),
+            Err(err) => match err.kind() {
+                std::io::ErrorKind::NotFound => return Err(errors::StorageErrors::NotFound),
+                err => {
+                    eprintln!("Error deleting file {}", err.to_string());
+                    return Err(errors::StorageErrors::UnknownError);
+                }
+            },
+        }
+    }
+
     async fn store_file(
         &self,
         filename: &String,
         content: &Vec<u8>,
     ) -> Result<(), errors::StorageErrors> {
         println!("Storing in {}", self.path.clone() + "/" + filename);
-        let file = File::create_new(self.path.clone() + "/" + filename).await;
+        let file = File::create_new(self.make_path(filename)).await;
 
         if let Err(err) = file {
             eprintln!("Error creating file: {}", err);
