@@ -1,6 +1,6 @@
 use tokio::net::TcpStream;
 
-use super::message::Message;
+use super::message::{send_message, Message};
 use crate::{
     handlers::message::send_ack,
     helpers::file::{deserialize_create_file, deserialize_filename_operation},
@@ -21,6 +21,21 @@ pub async fn handle_create(message: &Message, storage: &Storage, stream: &mut Tc
         eprintln!("Error sending ack create: {}", err.to_string());
         return;
     }
+}
+
+pub async fn handle_get(message: &Message, storage: &Storage, stream: &mut TcpStream) {
+    let filename = deserialize_filename_operation(&message.content);
+    let res = storage.get_file(&filename).await;
+
+    match res {
+        Ok(mut content) => {
+            match send_message(super::message::MessageType::Ok, &mut content, stream).await {
+                Err(err) => eprintln!("Error sending get reply: {}", err),
+                Ok(_) => {}
+            }
+        }
+        Err(storage_err) => send_error_storage_data(storage_err, stream).await,
+    };
 }
 
 pub async fn handle_delete(message: &Message, storage: &Storage, stream: &mut TcpStream) {

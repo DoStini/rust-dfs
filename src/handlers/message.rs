@@ -119,7 +119,8 @@ pub async fn read_message(stream: &mut TcpStream) -> Result<Vec<u8>, std::io::Er
     panic!("Reading message failed");
 }
 
-pub async fn parse_message(stream: &mut TcpStream, addr: SocketAddr) -> Message {
+pub async fn parse_message(stream: &mut TcpStream) -> Message {
+    let addr = stream.peer_addr().unwrap();
     let res = read_message(stream).await;
 
     if let Err(err) = res {

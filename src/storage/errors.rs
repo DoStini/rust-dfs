@@ -2,6 +2,7 @@ use tokio::net::TcpStream;
 
 use crate::handlers::message::{build_error_data, send_message, ErrorType, MessageType};
 
+#[derive(Debug)]
 pub enum StorageErrors {
     AlreadyExists = 1,
     NotFound = 2,

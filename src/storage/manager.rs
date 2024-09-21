@@ -2,7 +2,7 @@ use std::{future::Future, path::Path, process::exit};
 
 use tokio::{
     fs::{create_dir_all, remove_file, File},
-    io::AsyncWriteExt,
+    io::{AsyncReadExt, AsyncWriteExt},
 };
 
 use super::{config::Storage, errors};
@@ -20,6 +20,11 @@ pub trait StorageManager {
         &self,
         filename: &String,
     ) -> impl Future<Output = Result<(), errors::StorageErrors>> + Send;
+
+    fn get_file(
+        &self,
+        filename: &String,
+    ) -> impl Future<Output = Result<Vec<u8>, errors::StorageErrors>> + Send;
 }
 
 impl StorageManager for Storage {
@@ -81,5 +86,27 @@ impl StorageManager for Storage {
         }
 
         Ok(())
+    }
+
+    async fn get_file(&self, filename: &String) -> Result<Vec<u8>, errors::StorageErrors> {
+        let mut buf = vec![];
+        let res = File::open(self.make_path(filename)).await;
+
+        match res {
+            Err(err) => match err.kind() {
+                std::io::ErrorKind::NotFound => return Err(errors::StorageErrors::NotFound),
+                err => {
+                    eprintln!("Error getting file {}", err.to_string());
+                    return Err(errors::StorageErrors::UnknownError);
+                }
+            },
+            Ok(mut file) => match file.read_to_end(&mut buf).await {
+                Ok(_) => Ok(buf),
+                Err(err) => {
+                    eprintln!("Error reading from file: {}", err.to_string());
+                    return Err(errors::StorageErrors::UnknownError);
+                }
+            },
+        }
     }
 }
