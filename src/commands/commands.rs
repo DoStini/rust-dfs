@@ -22,13 +22,10 @@ async fn create_command(filename: &String, stream: &mut TcpStream) {
     let mut send_buffer = Vec::new();
     serialize_create_file(filename, &mut file_buffer, &mut send_buffer);
     let res = send_message(MessageType::CliPut, &mut send_buffer, stream).await;
-
     if let Err(err) = res {
         eprintln!("Error sending message to node {err}");
         exit(2);
     }
-
-    println!("Sucessfully sent!");
 }
 
 pub async fn handle_command(command: Operation, filename: &String, stream: &mut TcpStream) {

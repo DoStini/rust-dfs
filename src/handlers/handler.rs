@@ -8,11 +8,18 @@ use crate::handlers::{
     message::{parse_message, print_message, Message},
 };
 
-async fn route_message(message: &Message, _origin: &SocketAddr, storage: &Storage) {
+async fn route_message(
+    message: &Message,
+    _origin: &SocketAddr,
+    stream: &mut TcpStream,
+    storage: &Storage,
+) {
     match message.message_type {
-        super::message::MessageType::CliPut => handle_create(message, storage),
+        super::message::MessageType::CliPut => handle_create(message, storage, stream),
         super::message::MessageType::CliGet => todo!(),
         super::message::MessageType::CliDelete => todo!(),
+        super::message::MessageType::Error => todo!(),
+        super::message::MessageType::Ok => todo!(),
     }
     .await
 }
@@ -22,5 +29,5 @@ pub async fn handle_message(mut stream: TcpStream, origin: SocketAddr, storage: 
 
     print_message(&msg);
 
-    route_message(&msg, &origin, &storage).await;
+    route_message(&msg, &origin, &mut stream, &storage).await;
 }
